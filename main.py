@@ -1,51 +1,12 @@
-import os
 import glob
-import fitz  # PyMuPDF
-import pytesseract
-from PIL import Image
 import pandas as pd
 import re
+import logging
+import utils
 
-# Set the path to the Tesseract OCR executable
-pytesseract.pytesseract.tesseract_cmd = "/opt/homebrew/bin/tesseract"
-
-
-# Extract the OCR Function
-
-
-def extract_text_from_image(image_path):
-    # Extract text from an image using Tesseract OCR
-    image = Image.open(image_path)
-    text = pytesseract.image_to_string(image)
-    return text
-
-# Define the OCR
-
-
-def read_ocr_text_from_pdf(pdf_path):
-    # Read OCR text from a PDF file using PyMuPDF and Tesseract OCR
-    ocr_text = ""
-    with fitz.open(pdf_path) as pdf_document:
-        for page_number in range(pdf_document.page_count):
-            page = pdf_document[page_number]
-            images = page.get_images(full=True)
-
-            for img in images:
-                image_index = img[0]
-                base_image = pdf_document.extract_image(image_index)
-                image_bytes = base_image["image"]
-                image_path = f"temp_image_{page_number}_{image_index}.png"
-
-                with open(image_path, "wb") as img_file:
-                    img_file.write(image_bytes)
-
-                ocr_text += extract_text_from_image(image_path)
-
-                # Remove temporary image file
-                os.remove(image_path)
-
-    return ocr_text
-
+# Set up logging
+logging.basicConfig(filename='ocr_process.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Create an empty list to store dictionaries
 data = []
@@ -55,8 +16,8 @@ tickets = glob.glob(os.path.join(path, 'files/ejercicio_2/*.pdf'), recursive=Tru
 
 # Read every image
 for pdf_file in tickets:
-    print(f"Performing OCR on images in: {pdf_file}")
-    ocr_text = read_ocr_text_from_pdf(pdf_file)
+    logging.info(f"Performing OCR on images in: {pdf_file}")
+    ocr_text = utils.read_ocr_text_from_pdf(pdf_file)
     # Append the results to the list as a dictionary
     data.append({'PDF File': pdf_file, 'OCR Text': ocr_text})
 
@@ -135,5 +96,6 @@ final_table.to_csv('files/results/product_information_new_ticket.csv', index=Fal
 merged_df.to_csv('files/results/ticket_details.csv', index=False, encoding='utf-8')
 
 # Display confirmation
+logging.info("CSV files saved successfully.")
 print("\nCSV files saved successfully.")
 print(df_result)
